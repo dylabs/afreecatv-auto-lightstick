@@ -1,20 +1,60 @@
 // 전역 변수
 let cheersInterval;
-let recordedText = "/야광봉//야광봉//야광봉/"; // 기본 텍스트
-let selectedTime = 2; // 기본 시간 (초)
-let startButton, stopButton;
+let timerTimeout;
+let channelId = "";
+let toggleButton;
+let isRunning = false;
+let startButton, stopButton; // Task 2에서 제거 예정
 
-// 로컬 스토리지에서 저장된 설정 불러오기
-function loadSavedSettings() {
-  const savedTime = localStorage.getItem("cheerInterval");
-  if (savedTime) {
-    selectedTime = parseFloat(savedTime);
-  }
+// 설정 기본값
+const DEFAULT_SETTINGS = {
+  recordedText: "/야광봉//야광봉//야광봉/",
+  selectedTime: 2,
+  timerEnabled: false,
+  timerValue: 3,
+  timerUnit: "min",
+  randomEnabled: false,
+  randomPattern: "/야광봉/",
+  randomMin: 2,
+  randomMax: 5,
+};
 
-  const savedText = localStorage.getItem("recordedText");
-  if (savedText) {
-    recordedText = savedText;
+let settings = { ...DEFAULT_SETTINGS };
+
+function getChannelId() {
+  const parts = window.location.pathname.split("/");
+  return parts[1] || "default";
+}
+
+function loadChannelSettings() {
+  channelId = getChannelId();
+  const saved = localStorage.getItem(`cheerSettings_${channelId}`);
+  if (saved) {
+    const parsed = JSON.parse(saved);
+    settings = { ...DEFAULT_SETTINGS, ...parsed };
+  } else {
+    settings = { ...DEFAULT_SETTINGS };
   }
+}
+
+function saveChannelSettings() {
+  localStorage.setItem(`cheerSettings_${channelId}`, JSON.stringify(settings));
+}
+
+function getAllChannelSettings() {
+  const channels = [];
+  for (let i = 0; i < localStorage.length; i++) {
+    const key = localStorage.key(i);
+    if (key.startsWith("cheerSettings_")) {
+      const id = key.replace("cheerSettings_", "");
+      channels.push({ id, settings: JSON.parse(localStorage.getItem(key)) });
+    }
+  }
+  return channels;
+}
+
+function deleteChannelSettings(id) {
+  localStorage.removeItem(`cheerSettings_${id}`);
 }
 
 // 현재 텍스트 표시 요소 생성
@@ -216,7 +256,7 @@ function showToast(message) {
 
 // 초기화 함수
 function init() {
-  loadSavedSettings();
+  loadChannelSettings();
   injectControls();
 }
 
