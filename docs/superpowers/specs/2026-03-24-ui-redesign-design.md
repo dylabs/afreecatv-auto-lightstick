@@ -2,7 +2,7 @@
 
 ## 요약
 
-재생/정지 버튼을 토글로 통합하고, 설정 모달을 추가하여 타이머(자동 정지)와 랜덤 개수 기능을 제공한다.
+재생/정지 버튼을 토글로 통합하고, 설정 모달을 추가하여 타이머(자동 정지)와 랜덤 개수 기능을 제공한다. 모든 설정은 채널별로 독립 관리된다.
 
 ## 버튼 바 변경
 
@@ -27,7 +27,7 @@
 - **입력**: 숫자 + 단위(분/초) 선택
 - **동작**: ON 상태에서 재생 시작 시, 설정된 시간 후 자동으로 `stopCheering()` 호출
 - **OFF**: 수동 정지만 가능 (기존 동작)
-- **기본값**: OFF, 5분
+- **기본값**: OFF, 3분
 
 ### 2. 랜덤 개수
 
@@ -38,11 +38,32 @@
 - **동작**: ON이면 매 interval마다 `패턴 x 랜덤개수`로 텍스트 생성하여 전송. OFF면 📝 기록 텍스트 그대로 전송.
 - **기본값**: OFF, `/야광봉/`, 2~5개
 
-### 저장
+### 3. 채널 목록 탭
 
-- **저장 버튼** 클릭 시 모든 설정을 localStorage에 저장하고 모달 닫기
-- 페이지 새로고침 후에도 설정 유지
-- localStorage 키: `cheerTimerEnabled`, `cheerTimerValue`, `cheerTimerUnit`, `cheerRandomEnabled`, `cheerRandomPattern`, `cheerRandomMin`, `cheerRandomMax`
+- 모달에 2개 탭: **설정** (현재 채널) | **채널 목록**
+- 채널 목록 탭에서 저장된 모든 채널의 설정 요약 표시
+- 현재 접속 중인 채널은 "현재" 뱃지로 표시
+- 각 채널 항목에 삭제(🗑️) 버튼
+- 채널 항목 요약: 채널명, 텍스트/랜덤 설정, 간격, 타이머 상태
+
+## 채널별 설정 관리
+
+### 채널 감지
+
+- URL에서 channelId 추출: `play.sooplive.com/{channelId}/...`
+- `window.location.pathname.split('/')[1]`로 추출
+
+### 저장 구조
+
+- localStorage 키: `cheerSettings_{channelId}` — JSON 객체로 통합 저장
+- 저장 항목: `recordedText`, `selectedTime`, `timerEnabled`, `timerValue`, `timerUnit`, `randomEnabled`, `randomPattern`, `randomMin`, `randomMax`
+- 채널 목록 조회: localStorage에서 `cheerSettings_` prefix로 시작하는 키를 탐색
+
+### 동작
+
+- **채널 진입 시**: 해당 채널 설정 자동 로드. 없으면 기본값 사용
+- **저장 시**: 현재 채널 ID 기준으로 저장
+- **채널 목록에서 삭제**: 해당 채널의 localStorage 키 제거
 
 ## 기존 기능과의 관계
 
@@ -62,6 +83,6 @@
 ## 기술 결정
 
 - **모달 렌더링**: content.js에서 DOM 직접 생성 (프레임워크 없음, 기존 패턴 유지)
-- **상태 관리**: 전역 변수 + localStorage (기존 패턴 유지)
+- **상태 관리**: 전역 변수 + localStorage 채널별 키 (기존 패턴 확장)
 - **타이머**: `setTimeout` 사용, 재생 중지 시 `clearTimeout`
 - **랜덤**: `Math.floor(Math.random() * (max - min + 1)) + min`
