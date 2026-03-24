@@ -61,7 +61,6 @@ function deleteChannelSettings(id) {
 function createRecordedTextDisplay() {
   const recordedTextDisplay = document.createElement("div");
   recordedTextDisplay.id = "recorded-text-display";
-  recordedTextDisplay.textContent = `현재 텍스트: ${recordedText}`;
 
   // 스타일 적용
   recordedTextDisplay.style.position = "fixed";
@@ -75,6 +74,38 @@ function createRecordedTextDisplay() {
   recordedTextDisplay.style.zIndex = "9999";
 
   document.body.appendChild(recordedTextDisplay);
+  updateTextDisplay();
+}
+
+// 텍스트 표시 업데이트
+function updateTextDisplay() {
+  const display = document.querySelector("#recorded-text-display");
+  if (!display) return;
+  if (settings.randomEnabled) {
+    display.textContent = "현재: " + settings.randomPattern + " x " + settings.randomMin + "~" + settings.randomMax + "개 (랜덤)";
+  } else {
+    display.textContent = "현재 텍스트: " + settings.recordedText;
+  }
+}
+
+// 랜덤 텍스트 생성
+function generateText() {
+  if (settings.randomEnabled) {
+    const count =
+      Math.floor(Math.random() * (settings.randomMax - settings.randomMin + 1)) +
+      settings.randomMin;
+    return settings.randomPattern.repeat(count);
+  }
+  return settings.recordedText;
+}
+
+// 토글 함수
+function toggleCheering() {
+  if (isRunning) {
+    stopCheering();
+  } else {
+    startCheering();
+  }
 }
 
 // 버튼 및 선택 상자 생성 및 페이지에 주입
@@ -82,29 +113,20 @@ function injectControls() {
   const recordLi = document.createElement("li");
   const recordButton = document.createElement("button");
   recordButton.type = "button";
-  recordButton.innerText = "📝"; // 기록하기 이모지
+  recordButton.innerText = "📝";
   recordButton.id = "record-button";
   recordButton.className = "cheer-button";
   recordButton.title = "기록하기";
   recordLi.appendChild(recordButton);
 
-  const startLi = document.createElement("li");
-  startButton = document.createElement("button");
-  startButton.type = "button";
-  startButton.innerText = "▶️"; // 시작하기 이모지
-  startButton.id = "start-button";
-  startButton.className = "cheer-button";
-  startButton.title = "시작하기";
-  startLi.appendChild(startButton);
-
-  const stopLi = document.createElement("li");
-  stopButton = document.createElement("button");
-  stopButton.type = "button";
-  stopButton.innerText = "⏹️"; // 멈추기 이모지
-  stopButton.id = "stop-button";
-  stopButton.className = "cheer-button";
-  stopButton.title = "멈추기";
-  stopLi.appendChild(stopButton);
+  const toggleLi = document.createElement("li");
+  toggleButton = document.createElement("button");
+  toggleButton.type = "button";
+  toggleButton.innerText = "▶️";
+  toggleButton.id = "toggle-button";
+  toggleButton.className = "cheer-button";
+  toggleButton.title = "시작하기";
+  toggleLi.appendChild(toggleButton);
 
   // 시간 선택 상자 생성
   const timeSelectorLi = document.createElement("li");
@@ -113,33 +135,16 @@ function injectControls() {
 
   // 이벤트 리스너 추가
   recordButton.addEventListener("click", recordText);
-  startButton.addEventListener("click", () => startCheering());
-  stopButton.addEventListener("click", stopCheering);
+  toggleButton.addEventListener("click", toggleCheering);
 
-  // 초기 버튼 상태 설정
-  startButton.disabled = false;
-  stopButton.disabled = true;
-
-  // ul3 생성 또는 기존 ul3에 추가
-  let ul3 = document.querySelector("#ul3");
-  if (!ul3) {
-    ul3 = document.createElement("ul");
-    ul3.id = "ul3";
-    ul3.className = "ul3";
-    // ul2 다음에 ul3 추가
-    const ul2 = document.querySelector("#ul2");
-    // if (ul2 && ul2.parentNode) {
-    //   ul2.parentNode.insertBefore(ul3, ul2.nextSibling);
-    // } else {
-    //   showToast("#ul2 요소를 찾을 수 없습니다.");
-    //   return;
-    // }
+  const ul2 = document.querySelector("#ul2");
+  if (!ul2) {
+    showToast("#ul2 요소를 찾을 수 없습니다.");
+    return;
   }
-
-  // 컨트롤 요소 추가
   ul2.appendChild(recordLi);
-  ul2.appendChild(startLi);
-  ul2.appendChild(stopLi);
+  ul2.appendChild(toggleLi);
+  // settingsLi는 Task 3에서 추가
   ul2.appendChild(timeSelectorLi);
 
   // 현재 텍스트 표시 요소 생성
@@ -151,18 +156,10 @@ function recordText() {
   const writeArea = document.querySelector("#write_area");
   if (writeArea) {
     const userText = writeArea.textContent.trim() || "/야광봉//야광봉//야광봉/";
-    recordedText = userText;
-    localStorage.setItem("recordedText", recordedText); // 로컬 스토리지에 저장
-
-    // 기록된 텍스트 표시 업데이트
-    const recordedTextDisplay = document.querySelector(
-      "#recorded-text-display"
-    );
-    if (recordedTextDisplay) {
-      recordedTextDisplay.textContent = `현재 텍스트: ${recordedText}`;
-    }
-
-    showToast(`녹화된 텍스트: ${recordedText}`);
+    settings.recordedText = userText;
+    saveChannelSettings();
+    updateTextDisplay();
+    showToast(`녹화된 텍스트: ${settings.recordedText}`);
   } else {
     showToast("#write_area 요소를 찾을 수 없습니다.");
   }
@@ -170,26 +167,41 @@ function recordText() {
 
 // 자동 응원 메시지 전송 시작
 function startCheering() {
-  stopCheering(); // 이전 인터벌이 있으면 중지
+  if (cheersInterval) {
+    clearInterval(cheersInterval);
+    cheersInterval = null;
+  }
+
   cheersInterval = setInterval(() => {
-    const item = recordedText;
+    const item = generateText();
     const writeArea = document.querySelector("#write_area");
     const sendButton = document.querySelector("#btn_send");
 
     if (writeArea && sendButton) {
       writeArea.textContent = item;
-      writeArea.dispatchEvent(new Event("input", { bubbles: true })); // 입력 이벤트 트리거
+      writeArea.dispatchEvent(new Event("input", { bubbles: true }));
       sendButton.click();
     } else {
       showToast("#write_area 또는 #btn_send 요소를 찾을 수 없습니다.");
       stopCheering();
     }
-  }, selectedTime * 1000);
+  }, settings.selectedTime * 1000);
 
-  // 버튼 상태 업데이트
-  startButton.disabled = true;
-  stopButton.disabled = false;
-  startButton.classList.add("active");
+  isRunning = true;
+  toggleButton.innerText = "⏹️";
+  toggleButton.title = "멈추기";
+  toggleButton.classList.add("active");
+
+  // 타이머 자동 정지
+  if (settings.timerEnabled) {
+    const ms = settings.timerUnit === "min"
+      ? settings.timerValue * 60 * 1000
+      : settings.timerValue * 1000;
+    timerTimeout = setTimeout(() => {
+      stopCheering();
+      showToast("타이머 종료! 자동 응원이 중지되었습니다.");
+    }, ms);
+  }
 
   showToast("자동 응원 시작!");
 }
@@ -200,13 +212,15 @@ function stopCheering() {
     clearInterval(cheersInterval);
     cheersInterval = null;
   }
+  if (timerTimeout) {
+    clearTimeout(timerTimeout);
+    timerTimeout = null;
+  }
 
-  // 버튼 상태 업데이트
-  startButton.disabled = false;
-  stopButton.disabled = true;
-  startButton.classList.remove("active");
-
-  showToast("자동 응원 중지!");
+  isRunning = false;
+  toggleButton.innerText = "▶️";
+  toggleButton.title = "시작하기";
+  toggleButton.classList.remove("active");
 }
 
 // 시간 선택 상자 생성
@@ -219,17 +233,15 @@ function createTimeSelector() {
     const option = document.createElement("option");
     option.value = time;
     option.text = `${time}초`;
-    if (time === selectedTime) {
+    if (time === settings.selectedTime) {
       option.selected = true;
     }
     timeSelector.appendChild(option);
   });
 
-  // 변경 이벤트 리스너 추가
   timeSelector.addEventListener("change", (event) => {
-    selectedTime = parseFloat(event.target.value);
-    // 로컬 스토리지에 선택한 시간 저장
-    localStorage.setItem("cheerInterval", selectedTime);
+    settings.selectedTime = parseFloat(event.target.value);
+    saveChannelSettings();
   });
 
   return timeSelector;
