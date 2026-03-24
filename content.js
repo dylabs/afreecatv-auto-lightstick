@@ -142,9 +142,19 @@ function injectControls() {
     showToast("#ul2 요소를 찾을 수 없습니다.");
     return;
   }
+  const settingsLi = document.createElement("li");
+  const settingsButton = document.createElement("button");
+  settingsButton.type = "button";
+  settingsButton.innerText = "⚙️";
+  settingsButton.id = "settings-button";
+  settingsButton.className = "cheer-button";
+  settingsButton.title = "설정";
+  settingsLi.appendChild(settingsButton);
+  settingsButton.addEventListener("click", openSettingsModal);
+
   ul2.appendChild(recordLi);
   ul2.appendChild(toggleLi);
-  // settingsLi는 Task 3에서 추가
+  ul2.appendChild(settingsLi);
   ul2.appendChild(timeSelectorLi);
 
   // 현재 텍스트 표시 요소 생성
@@ -221,6 +231,346 @@ function stopCheering() {
   toggleButton.innerText = "▶️";
   toggleButton.title = "시작하기";
   toggleButton.classList.remove("active");
+}
+
+// ======== 설정 모달 ========
+
+function createSettingsModal() {
+  // 오버레이
+  const overlay = document.createElement("div");
+  overlay.id = "cheer-modal-overlay";
+  overlay.className = "cheer-modal-overlay";
+  overlay.addEventListener("click", (e) => {
+    if (e.target === overlay) closeSettingsModal();
+  });
+
+  // 모달 컨테이너
+  const modal = document.createElement("div");
+  modal.className = "cheer-modal";
+
+  // 헤더
+  const header = document.createElement("div");
+  header.className = "cheer-modal-header";
+  const titleWrap = document.createElement("div");
+  const title = document.createElement("div");
+  title.className = "cheer-modal-title";
+  title.textContent = "자동 응원 설정";
+  const channelName = document.createElement("div");
+  channelName.className = "cheer-modal-channel";
+  channelName.textContent = "채널: " + channelId;
+  titleWrap.appendChild(title);
+  titleWrap.appendChild(channelName);
+  const closeBtn = document.createElement("button");
+  closeBtn.id = "cheer-modal-close";
+  closeBtn.className = "cheer-modal-close";
+  closeBtn.textContent = "✕";
+  header.appendChild(titleWrap);
+  header.appendChild(closeBtn);
+
+  // 탭 바
+  const tabBar = document.createElement("div");
+  tabBar.className = "cheer-tab-bar";
+  const tabSettings = document.createElement("button");
+  tabSettings.className = "cheer-tab active";
+  tabSettings.dataset.tab = "settings";
+  tabSettings.textContent = "설정";
+  const tabChannels = document.createElement("button");
+  tabChannels.className = "cheer-tab";
+  tabChannels.dataset.tab = "channels";
+  tabChannels.textContent = "채널 목록";
+  tabBar.appendChild(tabSettings);
+  tabBar.appendChild(tabChannels);
+
+  // 설정 탭 콘텐츠
+  const settingsContent = document.createElement("div");
+  settingsContent.id = "cheer-tab-settings";
+  settingsContent.className = "cheer-tab-content active";
+
+  // --- 타이머 섹션 ---
+  const timerSection = document.createElement("div");
+  timerSection.className = "cheer-section";
+  const timerHeader = document.createElement("div");
+  timerHeader.className = "cheer-section-header";
+  const timerLabel = document.createElement("span");
+  timerLabel.textContent = "자동 정지 타이머";
+  const timerToggle = createToggleSwitch("cheer-timer-toggle", settings.timerEnabled);
+  timerHeader.appendChild(timerLabel);
+  timerHeader.appendChild(timerToggle);
+  const timerBody = document.createElement("div");
+  timerBody.id = "cheer-timer-body";
+  timerBody.className = "cheer-section-body";
+  const timerRow = document.createElement("div");
+  timerRow.className = "cheer-field-row";
+  const timerInput = document.createElement("input");
+  timerInput.type = "number";
+  timerInput.id = "cheer-timer-value";
+  timerInput.className = "cheer-input-number";
+  timerInput.min = "1";
+  timerInput.value = settings.timerValue;
+  const timerUnit = document.createElement("select");
+  timerUnit.id = "cheer-timer-unit";
+  timerUnit.className = "cheer-select";
+  const optMin = document.createElement("option");
+  optMin.value = "min";
+  optMin.textContent = "분";
+  if (settings.timerUnit === "min") optMin.selected = true;
+  const optSec = document.createElement("option");
+  optSec.value = "sec";
+  optSec.textContent = "초";
+  if (settings.timerUnit === "sec") optSec.selected = true;
+  timerUnit.appendChild(optMin);
+  timerUnit.appendChild(optSec);
+  timerRow.appendChild(timerInput);
+  timerRow.appendChild(timerUnit);
+  const timerDesc = document.createElement("div");
+  timerDesc.className = "cheer-field-desc";
+  timerDesc.textContent = "설정한 시간 후 자동으로 응원이 멈춥니다";
+  timerBody.appendChild(timerRow);
+  timerBody.appendChild(timerDesc);
+  timerSection.appendChild(timerHeader);
+  timerSection.appendChild(timerBody);
+
+  // --- 랜덤 섹션 ---
+  const randomSection = document.createElement("div");
+  randomSection.className = "cheer-section";
+  const randomHeader = document.createElement("div");
+  randomHeader.className = "cheer-section-header";
+  const randomLabel = document.createElement("span");
+  randomLabel.textContent = "랜덤 개수";
+  const randomToggle = createToggleSwitch("cheer-random-toggle", settings.randomEnabled);
+  randomHeader.appendChild(randomLabel);
+  randomHeader.appendChild(randomToggle);
+  const randomBody = document.createElement("div");
+  randomBody.id = "cheer-random-body";
+  randomBody.className = "cheer-section-body";
+  const patternField = document.createElement("div");
+  patternField.className = "cheer-field";
+  const patternLabel = document.createElement("label");
+  patternLabel.textContent = "이모지 패턴";
+  const patternInput = document.createElement("input");
+  patternInput.type = "text";
+  patternInput.id = "cheer-random-pattern";
+  patternInput.className = "cheer-input-text";
+  patternInput.value = settings.randomPattern;
+  patternField.appendChild(patternLabel);
+  patternField.appendChild(patternInput);
+  const countRow = document.createElement("div");
+  countRow.className = "cheer-field-row";
+  const minLabel = document.createElement("label");
+  minLabel.textContent = "최소";
+  const minInput = document.createElement("input");
+  minInput.type = "number";
+  minInput.id = "cheer-random-min";
+  minInput.className = "cheer-input-number";
+  minInput.min = "1";
+  minInput.value = settings.randomMin;
+  const countSep = document.createElement("span");
+  countSep.className = "cheer-separator";
+  countSep.textContent = "~";
+  const maxLabel = document.createElement("label");
+  maxLabel.textContent = "최대";
+  const maxInput = document.createElement("input");
+  maxInput.type = "number";
+  maxInput.id = "cheer-random-max";
+  maxInput.className = "cheer-input-number";
+  maxInput.min = "1";
+  maxInput.value = settings.randomMax;
+  countRow.appendChild(minLabel);
+  countRow.appendChild(minInput);
+  countRow.appendChild(countSep);
+  countRow.appendChild(maxLabel);
+  countRow.appendChild(maxInput);
+  const preview = document.createElement("div");
+  preview.id = "cheer-random-preview";
+  preview.className = "cheer-preview";
+  randomBody.appendChild(patternField);
+  randomBody.appendChild(countRow);
+  randomBody.appendChild(preview);
+  randomSection.appendChild(randomHeader);
+  randomSection.appendChild(randomBody);
+
+  // --- 저장 버튼 ---
+  const saveBtn = document.createElement("button");
+  saveBtn.id = "cheer-save-btn";
+  saveBtn.className = "cheer-save-btn";
+  saveBtn.textContent = "저장";
+
+  settingsContent.appendChild(timerSection);
+  settingsContent.appendChild(randomSection);
+  settingsContent.appendChild(saveBtn);
+
+  // 채널 목록 탭 콘텐츠
+  const channelsContent = document.createElement("div");
+  channelsContent.id = "cheer-tab-channels";
+  channelsContent.className = "cheer-tab-content";
+
+  // 조립
+  modal.appendChild(header);
+  modal.appendChild(tabBar);
+  modal.appendChild(settingsContent);
+  modal.appendChild(channelsContent);
+  overlay.appendChild(modal);
+
+  return overlay;
+}
+
+function createToggleSwitch(id, checked) {
+  const label = document.createElement("label");
+  label.className = "cheer-toggle";
+  const input = document.createElement("input");
+  input.type = "checkbox";
+  input.id = id;
+  input.checked = checked;
+  const slider = document.createElement("span");
+  slider.className = "cheer-toggle-slider";
+  label.appendChild(input);
+  label.appendChild(slider);
+  return label;
+}
+
+function openSettingsModal() {
+  if (document.querySelector("#cheer-modal-overlay")) return;
+
+  const overlay = createSettingsModal();
+  document.body.appendChild(overlay);
+
+  // 닫기 버튼
+  document.querySelector("#cheer-modal-close").addEventListener("click", closeSettingsModal);
+
+  // 탭 전환
+  overlay.querySelectorAll(".cheer-tab").forEach((tab) => {
+    tab.addEventListener("click", () => {
+      overlay.querySelectorAll(".cheer-tab").forEach((t) => t.classList.remove("active"));
+      overlay.querySelectorAll(".cheer-tab-content").forEach((c) => c.classList.remove("active"));
+      tab.classList.add("active");
+      const targetId = tab.dataset.tab === "settings" ? "cheer-tab-settings" : "cheer-tab-channels";
+      document.getElementById(targetId).classList.add("active");
+      if (tab.dataset.tab === "channels") renderChannelList();
+    });
+  });
+
+  // 토글 스위치로 섹션 활성/비활성
+  setupToggle("#cheer-timer-toggle", "#cheer-timer-body");
+  setupToggle("#cheer-random-toggle", "#cheer-random-body", updateRandomPreview);
+
+  // 랜덤 미리보기 이벤트
+  ["#cheer-random-pattern", "#cheer-random-min", "#cheer-random-max"].forEach((sel) => {
+    document.querySelector(sel)?.addEventListener("input", updateRandomPreview);
+  });
+  updateRandomPreview();
+
+  // 저장
+  document.querySelector("#cheer-save-btn").addEventListener("click", saveSettingsFromModal);
+}
+
+function setupToggle(toggleSel, bodySel, onChange) {
+  const toggle = document.querySelector(toggleSel);
+  const body = document.querySelector(bodySel);
+  body.classList.toggle("disabled", !toggle.checked);
+  toggle.addEventListener("change", () => {
+    body.classList.toggle("disabled", !toggle.checked);
+    if (onChange) onChange();
+  });
+}
+
+function updateRandomPreview() {
+  const preview = document.querySelector("#cheer-random-preview");
+  if (!preview) return;
+  const pattern = document.querySelector("#cheer-random-pattern").value || "/야광봉/";
+  const min = parseInt(document.querySelector("#cheer-random-min").value) || 1;
+  const max = parseInt(document.querySelector("#cheer-random-max").value) || 1;
+  const count = Math.floor(Math.random() * (max - min + 1)) + min;
+  preview.textContent = "미리보기: " + pattern.repeat(count) + " (" + count + "개)";
+}
+
+function saveSettingsFromModal() {
+  settings.timerEnabled = document.querySelector("#cheer-timer-toggle").checked;
+  settings.timerValue = parseInt(document.querySelector("#cheer-timer-value").value) || 3;
+  settings.timerUnit = document.querySelector("#cheer-timer-unit").value;
+  settings.randomEnabled = document.querySelector("#cheer-random-toggle").checked;
+  settings.randomPattern = document.querySelector("#cheer-random-pattern").value || "/야광봉/";
+  settings.randomMin = parseInt(document.querySelector("#cheer-random-min").value) || 1;
+  settings.randomMax = parseInt(document.querySelector("#cheer-random-max").value) || 1;
+
+  if (settings.randomMin > settings.randomMax) {
+    const temp = settings.randomMin;
+    settings.randomMin = settings.randomMax;
+    settings.randomMax = temp;
+  }
+
+  saveChannelSettings();
+  updateTextDisplay();
+  closeSettingsModal();
+  showToast("설정이 저장되었습니다!");
+}
+
+function closeSettingsModal() {
+  const overlay = document.querySelector("#cheer-modal-overlay");
+  if (overlay) overlay.remove();
+}
+
+function renderChannelList() {
+  const container = document.querySelector("#cheer-tab-channels");
+  if (!container) return;
+  while (container.firstChild) {
+    container.removeChild(container.firstChild);
+  }
+
+  const channels = getAllChannelSettings();
+  if (channels.length === 0) {
+    const empty = document.createElement("div");
+    empty.className = "cheer-channel-empty";
+    empty.textContent = "저장된 채널이 없습니다.";
+    container.appendChild(empty);
+    return;
+  }
+
+  channels.forEach((ch) => {
+    const item = document.createElement("div");
+    item.className = "cheer-channel-item";
+    if (ch.id === channelId) item.classList.add("current");
+
+    const info = document.createElement("div");
+    info.className = "cheer-channel-info";
+    const name = document.createElement("div");
+    name.className = "cheer-channel-name";
+    name.textContent = ch.id;
+    if (ch.id === channelId) {
+      const badge = document.createElement("span");
+      badge.className = "cheer-channel-badge";
+      badge.textContent = "현재";
+      name.appendChild(badge);
+    }
+    const summary = document.createElement("div");
+    summary.className = "cheer-channel-summary";
+    const s = ch.settings;
+    let desc = s.randomEnabled
+      ? s.randomPattern + " x " + (s.randomMin || 1) + "~" + (s.randomMax || 1) + "개"
+      : (s.recordedText || "기본 텍스트");
+    desc += " / " + (s.selectedTime || 2) + "초";
+    if (s.timerEnabled) desc += " / 타이머 " + (s.timerValue || 3) + (s.timerUnit === "sec" ? "초" : "분");
+    summary.textContent = desc;
+    info.appendChild(name);
+    info.appendChild(summary);
+
+    const deleteBtn = document.createElement("button");
+    deleteBtn.className = "cheer-channel-delete";
+    deleteBtn.textContent = "🗑️";
+    deleteBtn.title = "삭제";
+    deleteBtn.addEventListener("click", () => {
+      if (ch.id === channelId) {
+        showToast("현재 채널은 삭제할 수 없습니다.");
+        return;
+      }
+      deleteChannelSettings(ch.id);
+      renderChannelList();
+      showToast(ch.id + " 채널 설정이 삭제되었습니다.");
+    });
+
+    item.appendChild(info);
+    item.appendChild(deleteBtn);
+    container.appendChild(item);
+  });
 }
 
 // 시간 선택 상자 생성
