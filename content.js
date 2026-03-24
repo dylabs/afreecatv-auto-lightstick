@@ -4,7 +4,6 @@ let timerTimeout;
 let channelId = "";
 let toggleButton;
 let isRunning = false;
-let startButton, stopButton; // Task 2에서 제거 예정
 
 // 설정 기본값
 const DEFAULT_SETTINGS = {
