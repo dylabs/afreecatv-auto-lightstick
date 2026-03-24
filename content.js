@@ -427,9 +427,13 @@ function createSettingsModal() {
   const preview = document.createElement("div");
   preview.id = "cheer-random-preview";
   preview.className = "cheer-preview";
+  const randomWarning = document.createElement("div");
+  randomWarning.className = "cheer-field-warning";
+  randomWarning.textContent = "구독 중이지 않은 채널에서 값을 4 이상 설정 시 오류가 발생할 수 있습니다.";
   randomBody.appendChild(patternField);
   randomBody.appendChild(countRow);
   randomBody.appendChild(preview);
+  randomBody.appendChild(randomWarning);
   randomSection.appendChild(randomHeader);
   randomSection.appendChild(randomBody);
 

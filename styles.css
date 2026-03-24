@@ -344,6 +344,12 @@ body.thema_dark {
   opacity: 0.5;
 }
 
+.cheer-field-warning {
+  font-size: 11px;
+  color: #e8a020;
+  margin-top: 8px;
+}
+
 /* 미리보기 */
 .cheer-preview {
   font-size: 12px;
