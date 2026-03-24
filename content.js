@@ -9,13 +9,13 @@ let isRunning = false;
 
 // 설정 기본값
 const DEFAULT_SETTINGS = {
-  recordedText: "/야광봉//야광봉//야광봉/",
+  recordedText: "/응원1_s//응원1_s//응원1_s/",
   selectedTime: 2,
   timerEnabled: false,
   timerValue: 3,
   timerUnit: "min",
   randomEnabled: false,
-  randomPattern: "/야광봉/",
+  randomPattern: "/응원1_s/",
   randomMin: 2,
   randomMax: 5,
 };
@@ -171,7 +171,7 @@ function injectControls() {
 function recordText() {
   const writeArea = document.querySelector("#write_area");
   if (writeArea) {
-    const userText = writeArea.textContent.trim() || "/야광봉//야광봉//야광봉/";
+    const userText = writeArea.textContent.trim() || "/응원1_s//응원1_s//응원1_s/";
     settings.recordedText = userText;
     saveChannelSettings();
     updateTextDisplay();
@@ -520,7 +520,7 @@ function setupToggle(toggleSel, bodySel, onChange) {
 function updateRandomPreview() {
   const preview = document.querySelector("#cheer-random-preview");
   if (!preview) return;
-  const pattern = document.querySelector("#cheer-random-pattern").value || "/야광봉/";
+  const pattern = document.querySelector("#cheer-random-pattern").value || "/응원1_s/";
   const min = parseInt(document.querySelector("#cheer-random-min").value) || 1;
   const max = parseInt(document.querySelector("#cheer-random-max").value) || 1;
   const count = Math.floor(Math.random() * (max - min + 1)) + min;
@@ -532,7 +532,7 @@ function saveSettingsFromModal() {
   settings.timerValue = parseInt(document.querySelector("#cheer-timer-value").value) || 3;
   settings.timerUnit = document.querySelector("#cheer-timer-unit").value;
   settings.randomEnabled = document.querySelector("#cheer-random-toggle").checked;
-  settings.randomPattern = document.querySelector("#cheer-random-pattern").value || "/야광봉/";
+  settings.randomPattern = document.querySelector("#cheer-random-pattern").value || "/응원1_s/";
   settings.randomMin = parseInt(document.querySelector("#cheer-random-min").value) || 1;
   settings.randomMax = parseInt(document.querySelector("#cheer-random-max").value) || 1;
 
