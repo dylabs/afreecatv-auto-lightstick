@@ -1,6 +1,8 @@
 // 전역 변수
 let cheersInterval;
 let timerTimeout;
+let timerDisplayInterval;
+let timerEndTime;
 let channelId = "";
 let toggleButton;
 let isRunning = false;
@@ -127,10 +129,15 @@ function injectControls() {
   toggleButton.title = "시작하기";
   toggleLi.appendChild(toggleButton);
 
-  // 시간 선택 상자 생성
+  // 시간 선택 상자 + 상태 표시
   const timeSelectorLi = document.createElement("li");
   const timeSelector = createTimeSelector();
   timeSelectorLi.appendChild(timeSelector);
+  const statusDisplay = document.createElement("span");
+  statusDisplay.id = "cheer-status-display";
+  statusDisplay.className = "cheer-status-display";
+  statusDisplay.style.display = "none";
+  timeSelectorLi.appendChild(statusDisplay);
 
   // 이벤트 리스너 추가
   recordButton.addEventListener("click", recordText);
@@ -201,16 +208,28 @@ function startCheering() {
   toggleButton.title = "멈추기";
   toggleButton.classList.add("active");
 
+  // select 숨기고 상태 표시
+  const selector = document.querySelector("#time-selector");
+  const statusEl = document.querySelector("#cheer-status-display");
+  if (selector) selector.style.display = "none";
+  if (statusEl) statusEl.style.display = "inline";
+
   // 타이머 자동 정지
   if (settings.timerEnabled) {
     const ms = settings.timerUnit === "min"
       ? settings.timerValue * 60 * 1000
       : settings.timerValue * 1000;
+    timerEndTime = Date.now() + ms;
     timerTimeout = setTimeout(() => {
       stopCheering();
       showToast("타이머 종료! 자동 응원이 중지되었습니다.");
     }, ms);
+  } else {
+    timerEndTime = null;
   }
+
+  updateStatusDisplay();
+  timerDisplayInterval = setInterval(updateStatusDisplay, 1000);
 
   showToast("자동 응원 시작!");
 }
@@ -226,10 +245,36 @@ function stopCheering() {
     timerTimeout = null;
   }
 
+  if (timerDisplayInterval) {
+    clearInterval(timerDisplayInterval);
+    timerDisplayInterval = null;
+  }
+  timerEndTime = null;
+
   isRunning = false;
   toggleButton.innerText = "▶️";
   toggleButton.title = "시작하기";
   toggleButton.classList.remove("active");
+
+  // 상태 표시 숨기고 select 복원
+  const selector = document.querySelector("#time-selector");
+  const statusEl = document.querySelector("#cheer-status-display");
+  if (selector) selector.style.display = "";
+  if (statusEl) statusEl.style.display = "none";
+}
+
+// 상태 표시 업데이트 (재생 중 select 대신 표시)
+function updateStatusDisplay() {
+  const el = document.querySelector("#cheer-status-display");
+  if (!el) return;
+  let text = settings.selectedTime + "초 간격";
+  if (timerEndTime) {
+    const remaining = Math.max(0, Math.ceil((timerEndTime - Date.now()) / 1000));
+    const min = Math.floor(remaining / 60);
+    const sec = remaining % 60;
+    text += " · " + min + ":" + (sec < 10 ? "0" : "") + sec + " 남음";
+  }
+  el.textContent = text;
 }
 
 // ======== 설정 모달 ========

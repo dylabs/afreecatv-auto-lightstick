@@ -75,6 +75,13 @@ body.thema_dark {
   border-radius: 4px;
 }
 
+.cheer-status-display {
+  font-size: 11px;
+  color: #4a9;
+  font-weight: bold;
+  white-space: nowrap;
+}
+
 /* 토스트 메시지 스타일 */
 .cheer-toast {
   visibility: hidden;
